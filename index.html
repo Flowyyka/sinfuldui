@@ -1,0 +1,1964 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Amethyst Menu — DUI</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   New DUI — dark-cyan admin panel, docked left
+   Preserves message protocol + item types from the Lua bridge.
+   ========================================================= */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --accent: 242, 76, 58;         /* OG default */
+  --accent-2: 149, 76, 233;      /* violet secondary */
+  --danger: 255, 92, 92;
+  --success: 74, 222, 128;
+  --warn: 250, 176, 5;
+
+  --panel-w: 20.5vw;
+  --row-h: 2.15vw;
+  --radius: 0.7vw;
+
+  --border-alpha: 0.28;
+  --tint: 255,255,255;           /* flips to 0,0,0 for light-mode themes */
+  --bg-0: rgba(12, 12, 12, 0.92);
+  --bg-1: rgba(22, 22, 22, 0.9);
+  --bg-2: rgba(28, 28, 28, 0.7);
+  --well: rgba(0, 0, 0, 0.35);
+  --line: rgba(var(--tint), 0.06);
+  --line-strong: rgba(var(--accent), var(--border-alpha));
+
+  --t1: rgba(var(--tint), 0.94);
+  --t2: rgba(var(--tint), 0.62);
+  --t3: rgba(var(--tint), 0.38);
+}
+html { color-scheme: normal !important; }
+body {
+  margin: 0;
+  background: transparent !important;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden !important;
+  user-select: none;
+  color: var(--t1);
+}
+
+/* ---------- Wrapper (docked LEFT) ---------- */
+.PWrapper {
+  position: absolute;
+  left: 1.5vw;
+  top: 3.5vh;
+  width: var(--panel-w);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  border: 1px solid var(--line);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent), 0.06),
+    0 0 40px rgba(var(--accent), 0.08);
+  overflow: hidden;
+  transform-origin: top left;
+  transform: scale(0.9);
+}
+@keyframes menuPopIn  { from { opacity:0; transform:scale(.82);} to { opacity:1; transform:scale(.9);} }
+@keyframes menuPopOut { from { opacity:1; transform:scale(.9);} to { opacity:0; transform:scale(.82);} }
+
+#rainbowFilter { display: contents; }
+@keyframes rainbowCycle { 0%{filter:hue-rotate(0)} 100%{filter:hue-rotate(360deg)} }
+.rainbow-active #rainbowFilter { display:block; animation: rainbowCycle 4s linear infinite; }
+
+/* ---------- Banner ---------- */
+.PBanner {
+  position: relative;
+  width: 100%;
+  height: 6vw;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  border-bottom: 1px solid var(--line-strong);
+}
+.PBanner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.05) contrast(1.05);
+}
+.BFade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10,12,18,0) 40%, rgba(10,12,18,0.85) 100%),
+    linear-gradient(90deg, rgba(10,12,18,0.55), rgba(10,12,18,0) 40%);
+  pointer-events: none;
+}
+.BOver {
+  position: absolute;
+  left: 0.9vw; bottom: 0.55vw; right: 0.9vw;
+  display: flex; align-items: center;
+}
+.BTitle {
+  display: flex; align-items: center; justify-content: flex-start;
+  gap: 0.4vw;
+  font-size: 0.75vw; font-weight: 700; letter-spacing: 0.02em; color: rgba(255,255,255,0.95);
+  text-shadow:
+
+    1px 0 2px rgba(0, 0, 0, 0.5),
+
+   -1px 0 2px rgba(0, 0, 0, 0.5),
+
+    0 1px 2px rgba(0, 0, 0, 0.5),
+
+    0 -1px 2px rgba(0, 0, 0, 0.5);
+}
+.BTitle i { font-size: 0.55vw; text-shadow:
+
+    1px 0 2px rgba(0, 0, 0, 0.5),
+
+   -1px 0 2px rgba(0, 0, 0, 0.5),
+
+    0 1px 2px rgba(0, 0, 0, 0.5),
+
+    0 -1px 2px rgba(0, 0, 0, 0.5); color: rgba(255,255,255,0.7); position: relative; top: 0.00vw; }
+.BTitle span { line-height: 1; }
+.BTag {
+  position: absolute;
+  top: 0.6vw; right: 0.7vw;
+  font-size: 0.6vw;
+  padding: 0.15vw 0.45vw;
+  border-radius: 999px;
+  color: rgb(var(--accent));
+  background: rgba(var(--accent), 0.12);
+  border: 1px solid rgba(var(--accent), 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  z-index: 2;
+}
+.BPH { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.45); gap:.4vw; font-size:.75vw;}
+
+/* ---------- List ---------- */
+.PList {
+  position: relative;
+  max-height: calc(var(--row-h) * 9);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.PList::-webkit-scrollbar { display:none; }
+.PListInner { position: relative; padding: 0.0vw 0.0vw 0.0vw; }
+
+.PHover {
+  position: absolute;
+  left: 0; right: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, rgba(var(--accent), 0.22), rgba(var(--accent), 0.06));
+  box-shadow: inset 0 0 0 1px rgba(var(--accent), 0.45), 0 0 18px rgba(var(--accent), 0.18);
+  pointer-events: none;
+  transition: top 0.26s cubic-bezier(0.22, 1, 0.36, 1), height 0.26s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+  z-index: 0;
+}
+
+.PTab {
+  position: relative;
+  display: flex; align-items: center;
+  min-height: var(--row-h);
+  padding: 0 0.65vw 0 0.55vw;
+  border-radius: 0.45vw;
+  color: var(--t2);
+  font-size: 0.78vw;
+  font-weight: 500;
+  z-index: 1;
+  transition: color 0.22s ease;
+}
+.PTab.active { color: var(--t1); }
+
+.PTIcon {
+  width: 1.2vw; text-align: center;
+  color: var(--t3);
+  margin-right: 0.55vw;
+  font-size: 0.8vw;
+  transition: color 0.22s ease;
+}
+.PTab.active .PTIcon { color: rgb(var(--accent)); }
+.PTab.warn.active .PTIcon,
+.PTab.warn .PWarnIcon { color: rgb(var(--warn)); }
+
+.PTLabel {
+  flex: 1;
+  display: flex; align-items: center; gap: 0.4vw;
+  min-width: 0;
+}
+.PTLabelText { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.PWarnIcon { color: rgb(var(--warn)); font-size: 0.7vw; }
+
+.PTArrow { color: var(--t3); font-size: 0.7vw; }
+.PTab.active .PTArrow { color: rgb(var(--accent)); }
+
+.PDropLabel {
+  max-width: 45%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--t1);
+  font-size: 0.72vw;
+  padding: 0.15vw 0.45vw;
+  border-radius: 0.3vw;
+  background: rgba(var(--accent), 0.08);
+  border: 1px solid rgba(var(--accent), 0.22);
+}
+
+.PInputRight { display:flex; align-items:center; gap:.35vw; color:var(--t2); font-size:.7vw; }
+.PInputVal {
+  padding: 0.15vw 0.4vw; border-radius: 0.3vw;
+  background: rgba(var(--tint),0.05);
+  border: 1px dashed var(--line);
+  max-width: 8vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* Toggle switch */
+.TOptions { display:flex; align-items:center; gap:.5vw; }
+.Checkbox {
+  position: relative;
+  width: 1.9vw; height: 1vw;
+  border-radius: 999px;
+  background: rgba(var(--tint),0.08);
+  border: 1px solid var(--line);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.Checkbox .Inside {
+  position: absolute; top: 50%; left: 0.1vw;
+  transform: translateY(-50%);
+  width: 0.72vw; height: 0.72vw; border-radius: 999px;
+  background: rgba(var(--tint), 0.9);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  transition: left 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, box-shadow 0.2s ease;
+}
+.Checkbox.Checked {
+  background: rgb(var(--accent));
+  border-color: rgba(var(--accent), 0.7);
+  box-shadow: 0 0 10px rgba(var(--accent), 0.45), inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.Checkbox.Checked .Inside { left: calc(100% - 0.72vw - 0.1vw); background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.45); }
+
+/* Slider */
+.Slider {
+  position: relative;
+  width: 6vw; height: 0.35vw;
+  border-radius: 999px;
+  background: rgba(var(--tint),0.08);
+  cursor: pointer;
+}
+.Slider .Progress {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(var(--accent),0.55), rgba(var(--accent),1));
+  border-radius: 999px;
+}
+.Slider .Thumb {
+  position: absolute; right: -0.25vw; top: 50%;
+  transform: translateY(-50%);
+  width: 0.7vw; height: 0.7vw; border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(var(--accent), 0.6);
+}
+.SliderVal { color: var(--t1); font-size: 0.7vw; min-width: 1.4vw; text-align: right; }
+
+/* Scrollable */
+.Scrollable {
+  display:flex; align-items:center; gap:.35vw;
+  padding: 0.12vw 0.4vw;
+  background: rgba(var(--tint),0.04);
+  border: 1px solid var(--line);
+  border-radius: 0.3vw;
+  color: var(--t1); font-size: 0.7vw;
+}
+.Scrollable i { color: rgb(var(--accent)); font-size: 0.65vw; }
+
+/* Distance badge */
+.PDistBadge {
+  font-size: 0.6vw; font-weight: 700;
+  padding: 0.1vw 0.35vw; border-radius: 0.25vw;
+  color: #fff;
+}
+.PDistBadge.near { background: rgba(var(--success), 0.25); border: 1px solid rgba(var(--success), 0.5); }
+.PDistBadge.mid  { background: rgba(var(--warn), 0.25);    border: 1px solid rgba(var(--warn), 0.5); }
+.PDistBadge.far  { background: rgba(var(--danger), 0.25);  border: 1px solid rgba(var(--danger), 0.5); }
+
+/* Divider row */
+.PTab.is-divider { pointer-events: none; padding-top:.35vw; }
+.PDivider {
+  display: flex; align-items: center; gap: 0.55vw;
+  width: 100%;
+  color: var(--t3);
+  font-size: 0.6vw;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.PDivider .DLine { flex:1; height:1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+
+/* Empty-state row: plain background text, not a button (e.g. "No Nearby Vehicle") */
+.PTab.is-empty {
+  pointer-events: none;
+  justify-content: center;
+  text-align: center;
+  color: var(--t3);
+  font-size: 0.72vw;
+  font-weight: 500;
+}
+
+/* Status row */
+.PTab.is-status { pointer-events: none; }
+.PStatusLabel { flex:1; color: var(--t2); font-size:.72vw; }
+.PStatusRight {
+  font-size: 0.7vw; font-weight: 600;
+  color: var(--t1);
+  padding: 0.1vw 0.4vw; border-radius: 0.3vw;
+  background: rgba(var(--tint),0.05);
+  border: 1px solid var(--line);
+}
+
+/* Footer */
+.PFooter {
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 0.5vw 0.75vw;
+  border-top: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(var(--accent),0.06), transparent 60%),
+    var(--well);
+}
+.FLogo { width: 1.05vw; height: 1.05vw; border-radius: 0.25vw; object-fit: cover; }
+.FBuild { color: var(--t2); font-size: 0.68vw; font-weight: 600; letter-spacing: 0.06em; display:inline-block; transition: opacity 0.35s ease; }
+.FInd { margin-left: auto; color: var(--t3); font-size: 0.68vw; font-variant-numeric: tabular-nums; }
+.FDot { width:.4vw; height:.4vw; border-radius:999px; background: rgb(var(--success)); box-shadow: 0 0 8px rgb(var(--success)); }
+
+/* ---------- Overlays: Input keyboard ---------- */
+@keyframes overlayIn  { from { opacity:0; transform: scale(.92); } to { opacity:1; transform: scale(1); } }
+@keyframes overlayOut { from { opacity:1; transform: scale(1); } to { opacity:0; transform: scale(.92); } }
+.Overlay {
+  position: absolute; inset: 0;
+  background: rgba(6, 8, 14, 0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 40;
+}
+.InputWrapper {
+  width: 88%;
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55vw;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,.55), 0 0 30px rgba(var(--accent),.15);
+}
+.IWHeader {
+  display:flex; align-items:center; gap:.5vw;
+  padding: 0.55vw 0.75vw;
+  border-bottom: 1px solid var(--line);
+  background: rgba(var(--accent), 0.06);
+}
+.IWHeader img { width: 1.1vw; height: 1.1vw; border-radius: .25vw; }
+.IWHeader i   { color: rgb(var(--accent)); font-size: .85vw; }
+.IWHeader span { font-size:.8vw; font-weight:700; }
+.IWLine { width:1px; height:1vw; background: var(--line); }
+.IWBody { padding: 0.75vw; }
+.InsideCon {
+  min-height: 1.7vw;
+  padding: 0.4vw 0.6vw;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 0.35vw;
+  color: var(--t1);
+  font-size: 0.8vw;
+  word-break: break-all;
+}
+.InsideCon::after {
+  content: '';
+  display: inline-block;
+  width: 1px; height: 0.85vw;
+  background: rgb(var(--accent));
+  margin-left: 2px;
+  animation: caret 1s steps(2) infinite;
+  vertical-align: middle;
+}
+@keyframes caret { 50% { opacity: 0; } }
+.IWHint { text-align:center; padding: 0.4vw; color: var(--t3); font-size: 0.65vw; letter-spacing:.08em; }
+
+/* Dropdown overlay */
+.DropOverlay {
+  position: absolute; inset: 0;
+  background: rgba(6,8,14,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 30;
+}
+.DropCard {
+  width: 96%;
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55vw;
+  overflow: hidden;
+}
+.DropCard .IWHeader { border-bottom: 1px solid var(--line); }
+.DropList { position: relative; max-height: 12vw; overflow-y:auto; overflow-x:hidden; padding: 0.25vw; scroll-behavior: smooth; }
+.DropList::-webkit-scrollbar { width: 4px; height: 0; }
+.DropList::-webkit-scrollbar-thumb { background: rgba(var(--accent),0.4); border-radius:4px; }
+
+/* Sliding highlight pill, same feel as the main list's nav pill —
+   full width, rounded corners. */
+.DropPill {
+  position: absolute;
+  left: 0; right: 0;
+  border-radius: 0.35vw;
+  background: linear-gradient(90deg, rgba(var(--accent), 0.22), rgba(var(--accent), 0.06));
+  box-shadow: inset 0 0 0 1px rgba(var(--accent), 0.45), 0 0 14px rgba(var(--accent), 0.16);
+  pointer-events: none;
+  transition: top 0.22s cubic-bezier(0.22, 1, 0.36, 1), height 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+  z-index: 0;
+}
+
+.DropRow {
+  position: relative;
+  display:flex; align-items:center; gap:.35vw;
+  padding: 0.4vw 0.6vw;
+  border-radius: 0.35vw;
+  font-size: 0.75vw;
+  color: var(--t2);
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.18s ease, transform 0.18s cubic-bezier(0.22,1,0.36,1);
+}
+.DropRow > span:not([class]) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.DropRow.hover {
+  color: var(--t1);
+  transform: translateX(0.15vw);
+}
+.DropRow .DRCheck { color: rgb(var(--accent)); font-size:.7vw; opacity: 0; transition: opacity 0.18s ease, transform 0.18s ease; flex-shrink: 0; }
+.DropRow.hover .DRCheck { opacity: 1; }
+
+/* Persistent marker for the option that's actually selected, independent
+   of whatever's currently hovered/navigated */
+.DropRow.is-selected { color: var(--t1); font-weight: 600; }
+.DropRow.is-selected .DRCheck { opacity: 1; transform: scale(1.05); }
+
+/* Rich player-select row: name, distance, and a car icon when the
+   player is currently in a vehicle */
+.DropRow .DPName { flex: 1; min-width: 4.5vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.DropRow .DPMeta { display: flex; align-items: center; gap: 0.3vw; flex-shrink: 0; }
+.DropRow .DPDist { font-size: 0.6vw; color: var(--t3); min-width: 1.8vw; text-align: right; }
+.DropRow .DPVeh  { width: 0.9vw; text-align: center; font-size: 0.65vw; color: rgb(var(--accent)); }
+
+/* Rich veh-select row: model, plate, up to 6 seat-occupant icons
+   (player = accent-colored user icon, NPC = dim slashed-user icon),
+   and distance */
+.DropRow .DVName  { flex: 1; min-width: 4.5vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.DropRow .DVPlate {
+  font-size: 0.55vw; color: var(--t3); flex-shrink: 0; letter-spacing: 0.03em;
+  padding: 0.04vw 0.22vw; border: 1px solid var(--line); border-radius: 0.2vw;
+  max-width: 4vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.DropRow .DVSeats  { display: flex; align-items: center; gap: 0.1vw; flex-shrink: 0; }
+.DropRow .DVSeat   { font-size: 0.5vw; line-height: 1; min-width: 0.4vw; text-align: center; }
+.DropRow .DVPlayer { color: rgb(var(--accent)); }
+.DropRow .DVNpc    { color: var(--t3); }
+.DropRow .DVEmpty  { opacity: 0.25; }
+.DropRow .DVDist   { font-size: 0.6vw; color: var(--t3); min-width: 1.8vw; text-align: right; flex-shrink: 0; }
+
+/* Brief "confirm" pop when an option is actually picked, so selecting
+   reads as a distinct action from just hovering/navigating */
+@keyframes dropRowConfirm {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.035); background: rgba(var(--accent), 0.28); }
+  100% { transform: scale(1); }
+}
+.DropRow.confirming { animation: dropRowConfirm 0.22s ease; border-radius: 0.35vw; }
+
+/* ---------- Spectators panel ---------- */
+.SpecPanel {
+  position: absolute;
+  right: 1.5vw;
+  bottom: 3vh;
+  width: 12vw;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  z-index: 90;
+  box-shadow: 0 12px 30px rgba(0,0,0,.5);
+}
+@keyframes specIn  { from{opacity:0; transform:translateY(.5vw);} to{opacity:1; transform:none;} }
+@keyframes specOut { from{opacity:1;} to{opacity:0; transform:translateY(.5vw);} }
+.SpecHeader {
+  display:flex; align-items:center; gap:.5vw;
+  padding: 0.5vw 0.7vw;
+  border-bottom: 1px solid var(--line);
+  background: rgba(var(--accent),0.06);
+  font-size:.72vw; font-weight:700;
+}
+.SpecIcon { color: rgb(var(--accent)); }
+.SpecCount {
+  margin-left:auto;
+  padding: 0.1vw 0.4vw;
+  border-radius: 999px;
+  background: rgba(var(--accent),.15);
+  border: 1px solid rgba(var(--accent),.35);
+  color: rgb(var(--accent)); font-size:.6vw;
+}
+.SpecList { max-height: 10vw; overflow-y:auto; padding: 0.35vw; }
+.SpecRow {
+  padding: 0.3vw 0.5vw;
+  font-size: 0.7vw;
+  color: var(--t2);
+  border-radius: 0.3vw;
+}
+.SpecRow + .SpecRow { margin-top: 0.15vw; }
+.SpecEmpty { text-align:center; color: var(--t3); font-size:.7vw; padding:.6vw 0; }
+
+/* ---------- Bubble panel ---------- */
+.BubblePanel {
+  position: absolute;
+  left: 1.5vw;
+  bottom: 3vh;
+  width: 12vw;
+  max-height: 40vh;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  z-index: 92;
+  box-shadow: 0 12px 30px rgba(0,0,0,.5);
+}
+.BubbleHeader {
+  display:flex; align-items:center; gap:.5vw;
+  padding: 0.5vw 0.7vw;
+  border-bottom: 1px solid var(--line);
+  background: rgba(var(--accent),0.06);
+  font-size:.72vw; font-weight:700;
+}
+.BubbleIcon { color: rgb(var(--accent)); }
+.BubbleCount {
+  margin-left:auto;
+  padding: 0.1vw 0.4vw;
+  border-radius: 999px;
+  background: rgba(var(--accent),.15);
+  border: 1px solid rgba(var(--accent),.35);
+  color: rgb(var(--accent)); font-size:.6vw;
+}
+.BubbleList { max-height: 10vw; overflow-y:auto; padding: 0.35vw; }
+.BubbleRow {
+  padding: 0.3vw 0.5vw;
+  font-size: 0.7vw;
+  color: var(--t2);
+  border-radius: 0.3vw;
+}
+.BubbleRow + .BubbleRow { margin-top: 0.15vw; }
+.BubbleEmpty { text-align:center; color: var(--t3); font-size:.7vw; padding:.6vw 0; }
+
+/* ---------- Admins panel ---------- */
+.AdminPanel {
+  position: absolute;
+  right: 1.5vw;
+  top: 3vh;
+  width: 12vw;
+  max-height: 40vh;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  z-index: 91;
+  box-shadow: 0 12px 30px rgba(0,0,0,.5);
+}
+.AdminHeader {
+  display:flex; align-items:center; gap:.5vw;
+  padding: 0.5vw 0.7vw;
+  border-bottom: 1px solid var(--line);
+  background: rgba(var(--accent),0.06);
+  font-size:.72vw; font-weight:700;
+}
+.AdminIcon { color: rgb(var(--accent)); }
+.AdminCount {
+  margin-left:auto;
+  padding: 0.1vw 0.4vw;
+  border-radius: 999px;
+  background: rgba(var(--accent),.15);
+  border: 1px solid rgba(var(--accent),.35);
+  color: rgb(var(--accent)); font-size:.6vw;
+}
+.AdminList { max-height: 10vw; overflow-y:auto; padding: 0.35vw; }
+.AdminRow {
+  padding: 0.3vw 0.5vw;
+  font-size: 0.7vw;
+  color: var(--t2);
+  border-radius: 0.3vw;
+}
+.AdminRow + .AdminRow { margin-top: 0.15vw; }
+.AdminEmpty { text-align:center; color: var(--t3); font-size:.7vw; padding:.6vw 0; }
+
+/* ---------- Notifications ---------- */
+.NWrap {
+  position: fixed;
+  right: 1.5vw; top: 3vh;
+  display: flex; flex-direction: column; gap: 0.5vw;
+  z-index: 200;
+  width: 18vw;
+}
+.Notif {
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  border: 1px solid var(--line);
+  border-left: 3px solid rgb(var(--accent));
+  border-radius: 0.5vw;
+  padding: 0.55vw 0.7vw 0.75vw;
+  color: var(--t1);
+  font-size: 0.75vw;
+  box-shadow: 0 12px 30px rgba(0,0,0,.5);
+  position: relative;
+  overflow: hidden;
+}
+.Notif.enter { animation: notifIn .28s cubic-bezier(.16,1,.3,1); }
+.Notif.exit  { animation: notifOut .22s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes notifIn  { from{opacity:0; transform:translateX(1vw);} to{opacity:1; transform:none;} }
+@keyframes notifOut { from{opacity:1;} to{opacity:0; transform:translateX(1vw);} }
+.Notif.success { border-left-color: rgb(var(--success)); }
+.Notif.warning { border-left-color: rgb(var(--warn)); }
+.Notif.error   { border-left-color: rgb(var(--danger)); }
+.NHead { display:flex; align-items:center; gap:.4vw; margin-bottom:.2vw; font-weight:700; font-size:.72vw; }
+.NHead i { color: rgb(var(--accent)); }
+.Notif.success .NHead i { color: rgb(var(--success)); }
+.Notif.warning .NHead i { color: rgb(var(--warn)); }
+.Notif.error   .NHead i { color: rgb(var(--danger)); }
+.NMsg { color: var(--t2); }
+.NProgress {
+  position:absolute; left:0; bottom:0; height:2px; width:100%;
+  background: linear-gradient(90deg, rgba(var(--accent),.9), rgba(var(--accent),.3));
+  transition: width linear;
+}
+.Notif.success .NProgress { background: linear-gradient(90deg, rgba(var(--success),.9), rgba(var(--success),.3)); }
+.Notif.warning .NProgress { background: linear-gradient(90deg, rgba(var(--warn),.9), rgba(var(--warn),.3)); }
+.Notif.error   .NProgress { background: linear-gradient(90deg, rgba(var(--danger),.9), rgba(var(--danger),.3)); }
+</style>
+</head>
+<body>
+
+<!-- Spectators -->
+<div class="SpecPanel" id="specPanel" style="display:none">
+  <div class="SpecHeader">
+    <i class="fa-solid fa-eye SpecIcon"></i>
+    <span>Spectators</span>
+    <span class="SpecCount" id="specCount">0</span>
+  </div>
+  <div class="SpecList" id="specList"></div>
+</div>
+
+<!-- Bubbles -->
+<div class="BubblePanel" id="bubblePanel" style="display:none">
+  <div class="BubbleHeader">
+    <i class="fa-solid fa-helmet-safety BubbleIcon"></i>
+    <span>Bubbled Users</span>
+    <span class="BubbleCount" id="bubbleCount">0</span>
+  </div>
+  <div class="BubbleList" id="bubbleList"></div>
+</div>
+
+<!-- Admins -->
+<div class="AdminPanel" id="adminPanel" style="display:none">
+  <div class="AdminHeader">
+    <i class="fa-solid fa-user-shield AdminIcon"></i>
+    <span>Active Admins</span>
+    <span class="AdminCount" id="adminCount">0</span>
+  </div>
+  <div class="AdminList" id="adminList"></div>
+</div>
+
+<!-- Main menu -->
+<div class="PWrapper" id="menu" style="display:none">
+  <div id="rainbowFilter">
+
+    <div class="PBanner">
+      <img id="bImg" src="https://files.catbox.moe/P9nelaV16Byi.gif" draggable="false" onerror="document.getElementById('bImg').style.display='none'; document.getElementById('bPH').style.display='flex';">
+      <div class="BFade"></div>
+      <div class="BTag" style="display:none;">Sinful</div>
+      <div class="BOver">
+        <div class="BTitle" id="bTitle">Sinful 2.0</div>
+      </div>
+      <div class="BPH" id="bPH" style="display:none">
+        <i class="fa-regular fa-image"></i><span>Banner Image</span>
+      </div>
+    </div>
+
+    <div class="PList" id="scrollableContainer">
+      <div class="PListInner" id="tabsInner">
+        <div class="PHover" id="pill"></div>
+      </div>
+    </div>
+
+    <div class="PFooter">
+      <img class="FLogo" id="fLogo" src="https://files.catbox.moe/R93qfDcjY9oG.png">
+      <span class="FBuild" id="footerText">discord.gg/sinfully</span>
+      <span class="FInd" id="ind">(0/0)</span>
+    </div>
+
+    <!-- Dropdown overlay -->
+    <div class="DropOverlay" id="dropOverlay" style="display:none"></div>
+
+    <!-- Input keyboard overlay -->
+    <div class="Overlay" id="inputOverlay" style="display:none">
+      <div class="InputWrapper">
+        <div class="IWHeader">
+          <img src="https://files.catbox.moe/8OFdnGMaSt64.png">
+          <div class="IWLine"></div>
+          <i class="fa-solid fa-keyboard"></i>
+          <span id="iwTitle">Input</span>
+        </div>
+        <div class="IWBody">
+          <div class="InsideCon"><span id="iwValue"></span></div>
+        </div>
+        <div class="IWHint">ENTER to confirm &nbsp;·&nbsp; BACKSPACE to cancel</div>
+      </div>
+    </div>
+
+  </div><!-- /rainbowFilter -->
+</div>
+
+<div class="NWrap" id="nwrap"></div>
+<style>
+  #espCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 10;
+  }
+</style>
+<canvas id="espCanvas"></canvas>
+<script>
+  (function() {
+    const canvas = document.getElementById('espCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    window.addEventListener('message', function(e) {
+      let d = e.data;
+      if (typeof d === 'string') {
+        try { d = JSON.parse(d); } catch(_) { return; }
+      }
+      if (!d) return;
+      if (!d.action && d.data && d.data.action) d = d.data;
+      if (d.action !== 'espUpdate') return;
+
+      const data = d.data || {};
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let p of (data.players || [])) {
+        const dist = p.dist || 1;
+        let size = 16 / (1 + dist * 0.025);
+        size = Math.max(8, Math.min(15, size));
+
+        // ---- Username + ID in brackets (at head) ----
+        if (p.headPos) {
+          const sx = p.headPos.x * canvas.width;
+          const sy = p.headPos.y * canvas.height;
+          const label = `${p.name || 'Unknown'} (${p.id || '?'})`;
+          ctx.font = `500 ${size}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.shadowColor = 'rgba(0,0,0,0.85)';
+          ctx.shadowBlur = 6;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(label, sx, sy);
+        }
+
+        // ---- Distance (under feet) ----
+        if (p.feetPos) {
+          const fx = p.feetPos.x * canvas.width;
+          const fy = p.feetPos.y * canvas.height;
+          ctx.font = `100 ${size}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`${Math.floor(dist)}m`, fx, fy + 1);
+        }
+      }
+    });
+  })();
+</script>
+<script>
+/* ---------------- State ---------------- */
+/* Placeholder rows so the panel isn't blank on first paint, before
+   Lua's first real 'show'/'navSync' message supplies actual items.
+   Any real message with d.items fully replaces this array as normal. */
+let items = [
+  { id: 'menu-self',         label: 'Self',                 type: 'submenu' },
+  { id: 'menu-utilities',    label: 'Utilities',            type: 'submenu' },
+  { id: 'menu-trolls',       label: 'Trolls',               type: 'submenu' },
+  { id: 'menu-vehicles',     label: 'Vehicles',             type: 'submenu' },
+  { id: 'menu-automation',   label: 'Automation',           type: 'submenu' },
+  { id: 'menu-blockers',     label: 'Blockers',             type: 'submenu' },
+  { id: 'menu-spawner',      label: 'Spawner',              type: 'submenu' },
+  { id: 'menu-item-dumper',  label: 'Asset Code Dumper',     type: 'submenu' },
+  { id: 'menu-settings',     label: 'Settings/Server',      type: 'submenu' },
+];
+let hovered = 0;
+let toggles = {};
+let sliderVals = {};
+let scrollVals = {};
+let dropdownState = {};
+let dropdownSelectedKey = {}; // item.id -> stable identity key of the picked entry (survives reordering)
+let playerDropDisplay = {};
+let inputStore = {};
+let radioGroups = {};
+let breadcrumbStack = ['Select Category'];
+let activeDropdown = null;
+let dropdownHovered = 0;
+
+const ALT_LOGO = 'https://files.catbox.moe/R93qfDcjY9oG.png';
+const LOGOS = {
+  'Default':        ALT_LOGO,
+  'Weed':          ALT_LOGO,
+  'Cool Blue':      ALT_LOGO,
+  'Cool Red':      ALT_LOGO,
+  '5msex Red GIF':      ALT_LOGO,
+  'Gooner':      ALT_LOGO,
+  '2slimeyy':      ALT_LOGO,
+  'TCB':           ALT_LOGO,
+  'Sponge':        ALT_LOGO,
+  'Black & White': ALT_LOGO,
+  'Diddy':         ALT_LOGO,
+  'USA':           ALT_LOGO,
+  'Rainbow':       ALT_LOGO,
+};
+
+/* Per-theme accent color, border strength, banner image, and whether
+   the panel body should use a black-based or white-based gradient */
+const THEMES = {
+  'Default':       { accent:'252,60,73',  borderAlpha:0.28, banner:'https://files.catbox.moe/P9nelaV16Byi.gif', mode:'dark'  },
+  'Weed':          { accent:'92,130,39',   borderAlpha:0.28, banner:'https://files.catbox.moe/l4t0e2.jpg', mode:'dark'  },
+  'Cool Blue':          { accent:'19,154,248',   borderAlpha:0.28, banner:'https://files.catbox.moe/g1slgm.png', mode:'dark'  },
+  'Cool Red':          { accent:'227,12,12',   borderAlpha:0.28, banner:'https://files.catbox.moe/q0ork1.png', mode:'dark'  },
+  '5msex Red GIF':          { accent:'227,12,12',   borderAlpha:0.28, banner:'https://files.catbox.moe/rxtmzd.gif', mode:'dark'  },
+  'Gooner':          { accent:'252,146,11',   borderAlpha:0.28, banner:'https://files.catbox.moe/yllig0.png', mode:'dark'  },
+  '2slimeyy':      { accent:'172,65,215',   borderAlpha:0.28, banner:'https://i.ibb.co/9MWGT51/image-3-1.jpg', mode:'dark'  },
+  'TCB':           { accent:'252,60,73',    borderAlpha:0.28, banner:'https://files.catbox.moe/hyyiz5.png', mode:'dark'  },
+  'Sponge':        { accent:'255,244,98',  borderAlpha:0.28, banner:'https://files.catbox.moe/ymmx3z.png', mode:'dark' },
+  'Black & White': { accent:'220,220,220', borderAlpha:0.22, banner:'https://i.ibb.co/q3z6Y0GV/1-E9-EEEAD-0-CE8-4-D06-ABC3-4824-D7418810.png', mode:'dark' },
+  'Diddy':         { accent:'137,207,240', borderAlpha:0.32, banner:'https://files.catbox.moe/xnp33p.jpg', mode:'dark'  },
+  'USA':           { accent:'220,220,220', borderAlpha:0.28, banner:'https://i.ibb.co/9mLsfkNV/USA.jpg', mode:'dark' },
+  'Rainbow':       { accent:'242,76,58',   borderAlpha:0.28, banner:'https://files.catbox.moe/afdi6s.gif', rainbow:true, mode:'dark' },
+  'Amethyst':      { accent:'168,85,247',  borderAlpha:0.28, banner:'https://files.catbox.moe/71znnd.jpg', mode:'dark' },
+};
+
+/* The two body treatments themes can pick from */
+const MODE_VARS = {
+  dark:  { tint:'255,255,255', bg0:'rgba(12,12,12,0.92)',    bg1:'rgba(22,22,22,0.9)',    bg2:'rgba(28,28,28,0.7)',    well:'rgba(0,0,0,0.35)' },
+  light: { tint:'0,0,0',       bg0:'rgba(248,248,248,0.94)', bg1:'rgba(232,232,232,0.92)', bg2:'rgba(222,222,222,0.7)', well:'rgba(0,0,0,0.08)' },
+};
+
+/* ---------------- Icon inference ----------------
+   Map keywords in id/action/label to Font Awesome icons
+   so specific buttons get specific icons automatically. */
+const ICON_RULES = [
+  [/^(revive|resurrect)/,           'fa-heart-pulse'],
+  [/thirst|drink|water/,            'fa-glass-water'],
+  [/track-target-player/,           'fa-shoe-prints'],
+  [/auto-rob|hands-up/,           'fa-people-robbery'],
+  [/kill/,           'fa-skull'],
+  [/talk/,           'fa-bullhorn'],
+  [/aggro/,           'fa-face-angry'],
+  [/gta-ram/,           'fa-angle-right'],
+  [/inst-ram/,           'fa-angles-right'],
+  [/laser-eyes/,           'fa-mask'],
+  [/crashself/,           'fa-power-off'],
+  [/solo-session/,           'fa-person'],
+  [/black-hole/,           'fa-user-astronaut'],
+  [/tt-e/,           'fa-bullhorn'],
+  [/mega-bat/,           'fa-baseball-bat-ball'],
+  [/throw/,           'fa-dumbbell'],
+  [/shift-boost/,           'fa-angles-right'],
+  [/veh-instant-brake/,           'fa-traffic-light'],
+  [/veh-hop/,           'fa-frog'],
+  [/veh-freeze/,           'fa-icicles'],
+  [/drift-mode/,           'fa-wind'],
+  [/seatbelt-set/,           'fa-shield-heart'],
+  [/drive-up/,           'fa-anchor-circle-check'],
+  [/crash-mode/,           'fa-person-burst'],
+  [/crash-mode/,           'fa-person-burst'],
+  [/hunger|food/,               'fa-utensils'],
+  [/explode|rctarget|rcveh|explosive|explo/,               'fa-explosion'],
+  [/no-reload/,               'fa-rotate-right'],
+  [/insta-reload/,               'fa-arrows-spin'],
+  [/inf-ammo/,               'fa-infinity'],
+  [/radio/,               'fa-walkie-talkie'],
+  [/phonenumber/,               'fa-phone-volume'],
+  [/no-clip|noclip|fly/,               'fa-feather'],
+  [/door/,               'fa-door-open'],
+  [/getplayerinfo/,               'fa-id-card'],
+  [/ban/,               'fa-person-circle-xmark'],
+  [/destroyserver|prop-spam|spam-prop/,               'fa-bomb'],
+  [/checkonline/,               'fa-signal'],
+  [/bypassplaytime/,               'fa-clock'],
+  [/fireac|feloxinject|fginject|reaperinject|reapersafeinject|finiinject|electroninject|eagleinject|meowinject|phoenixinject|likizaoinject/,               'fa-shield-virus'],
+  [/bb-hat/,               'fa-helmet-safety'],
+  [/bb-b2/,               'fa-vest'],
+  [/bb-body/,               'fa-eye-slash'],
+  [/bb-b/,               'fa-person-shelter'],
+  [/weaponspoof/,               'fa-ghost'],
+  [/spoofweapon/,               'fa-person-rifle'],
+  [/screen/,               'fa-video-slash'],
+  [/delvehplayer|removeweapon/,                          'fa-trash-can'],
+  [/wheel|engine|repair/,               'fa-screwdriver-wrench'],
+  [/outfit/,                        'fa-shirt'],
+  [/stress/,                        'fa-face-tired'],
+  [/dump/,                          'fa-folder-tree'],
+  [/crutch/,                        'fa-crutch'],
+  [/char.*creat/,                   'fa-user-pen'],
+  [/cloth/,                         'fa-shirt'],
+  [/starter/,                       'fa-gift'],
+  [/god.*mode|god-mode|tx-godmode/, 'fa-shield-halved'],
+  [/punch/,                         'fa-hand-fist'],
+  [/run|speed/,                     'fa-person-running'],
+  [/jump/,                          'fa-arrow-up-from-bracket'],
+  [/stamina/,                       'fa-bolt'],
+  [/invisib|invis/,                       'fa-user-secret'],
+  [/noclip|spy|spoof/,                        'fa-ghost'],
+  [/fullhooking/,                        'fa-anchor'],
+  [/show.*id|player.*id|tx-show-ids/, 'fa-id-badge'],
+  [/takelocation|takeToLocation|take-to|loc-teleport-select/, 'fa-location-dot'],
+  [/teleport|tp/,                        'fa-map-location-dot'],
+  [/waypoint/,                      'fa-map-pin'],
+  [/coms/,                          'fa-broom'],
+  [/jail/,                          'fa-handcuffs'],
+  [/hospital/,                      'fa-hospital'],
+  [/airport|plane/,                 'fa-plane'],
+  [/bank/,                          'fa-building-columns'],
+  [/military|base/,                 'fa-shield'],
+  [/driveby/,     'fa-car-side'],
+  [/spawn.*veh|vehicle.*spawn/,     'fa-car'],
+  [/vehicle|veh-select/,        'fa-car'],
+  [/key|giveveh/,                           'fa-key'],
+  [/spawn.*money|give.*money/,      'fa-sack-dollar'],
+  [/money/,                         'fa-dollar-sign'],
+  [/spawn/,                         'fa-box-open'],
+  [/sell/,                          'fa-tag'],
+  [/launch/,                        'fa-rocket'],
+  [/troll|target/,                  'fa-crosshairs'],
+  [/spectate/,                      'fa-eye'],
+  [/block|anti-|disable/,           'fa-ban'],
+  [/screenshot/,                    'fa-camera'],
+  [/blackscreen/,                   'fa-tv'],
+  [/attach|dildo/,                        'fa-link'],
+  [/chat|voice/,               'fa-comments'],
+  [/notify|notification/,           'fa-bell'],
+  [/hello|say/,                     'fa-comment'],
+  [/trigger|event|fire/,            'fa-bolt-lightning'],
+  [/volume|sound/,                  'fa-volume-high'],
+  [/theme|color/,                   'fa-palette'],
+  [/status|info/,                   'fa-circle-info'],
+  [/pos-x|pos-y|position/,          'fa-arrows-up-down-left-right'],
+  [/self/,                          'fa-user'],
+  [/utili|tool/,                    'fa-toolbox'],
+  [/vehicle/i,                      'fa-car'],
+  [/automat|showreal/,                       'fa-robot'],
+  [/spawner/,                       'fa-cube'],
+  [/setting/,                       'fa-gear'],
+  [/submenu|main/,                  'fa-list'],
+];
+
+
+function iconFor(item) {
+  if (!item) return 'fa-circle';
+  if (item.icon) return item.icon; // allow Lua override
+  const key = String((item.id || item.action || item.label || '')).toLowerCase();
+  for (const [re, icon] of ICON_RULES) if (re.test(key)) return icon;
+  switch (item.type) {
+    case 'submenu':      return 'fa-folder';
+    case 'toggle':       return 'fa-toggle-on';
+    case 'radiotoggle':  return 'fa-circle-dot';
+    case 'dropdown':     return 'fa-chevron-down';
+    case 'slider':       return 'fa-sliders';
+    case 'scrollable':   return 'fa-shuffle';
+    case 'action':       return 'fa-bolt';
+    case 'status':       return 'fa-circle-info';
+    default:             return 'fa-circle';
+  }
+}
+
+/* ---------------- Warn helpers ---------------- */
+function itemHasWarn(item) {
+  if (!item) return false;
+  const truthy = v => v === true || v === 1 || v === '1' || v === 'true';
+  if (['warn','warning','danger','risky'].some(k => truthy(item[k]))) return true;
+  const id = String(item.id || item.action || '').toLowerCase();
+  const label = String(item.label || '').toLowerCase();
+  const dangerRe = /(tx[-_ ]?admin[-_ ]?noclip|tx[-_ ]?noclip|multi[-_ ]?burst[-_ ]?player|explode player #1|laser eyes|explode vehicle #1|taze player|ban player|explosive ammo|spawn aggressive ped|spawn lazy clone ped|hook possible|normal spectate player|auto rob player #2|pac server nuker)/i;
+  return dangerRe.test(id) || dangerRe.test(label);
+}
+function normalizeWarnItems(list) {
+  if (!Array.isArray(list)) return list;
+  return list.map(item => {
+    if (!item || typeof item !== 'object') return item;
+    const next = { ...item };
+    if (itemHasWarn(next)) next.warn = true;
+    if (Array.isArray(next.items)) next.items = normalizeWarnItems(next.items);
+    return next;
+  });
+}
+
+/* Rich-row rendering for player-select / veh-select. Confirmed format
+   is SPACE-delimited (not tabs):
+     player-select : "PLAYERNAME DISTANCEm V"   (trailing "V" only if in a vehicle)
+     veh-select    : "VEHICLENAME PLATE DISTANCEm PPPP" (one letter per seat: P = player, else NPC)
+   Parsed from the end via regex so a name containing spaces doesn't
+   break the split — the distance/plate/seat fields are what anchor it.
+   Any other dropdown (e.g. theme-select) has none of this and just
+   renders as plain text. */
+function parsePlayerOption(s) {
+  const m = String(s).match(/^(.*?)\s+(\d+(?:\.\d+)?\s*m)(?:\s+(V))?\s*$/i);
+  if (!m) return null;
+  return { name: m[1].trim(), dist: m[2].trim(), inVehicle: !!m[3] };
+}
+function parseVehicleOption(s) {
+  const m = String(s).match(/^(.*?)\s+(\S+)\s+(\d+(?:\.\d+)?\s*m)\s+([A-Za-z]*)\s*$/i);
+  if (!m) return null;
+  return { name: m[1].trim(), plate: m[2].trim(), dist: m[3].trim(), seats: m[4] };
+}
+
+function formatDropRowInner(itemId, opt) {
+  const s = String(opt);
+  if (itemId === 'player-select') {
+    const p = parsePlayerOption(s);
+    if (p) {
+      return `<span class="DPName">${p.name}</span>
+        <span class="DPMeta">
+          <span class="DPDist">${p.dist}</span>
+          ${p.inVehicle ? '<i class="fa-solid fa-car DPVeh"></i>' : '<span class="DPVeh"></span>'}
+        </span>`;
+    }
+  }
+  if (itemId === 'veh-select') {
+    const v = parseVehicleOption(s);
+    if (v) {
+      const seats = v.seats.split('').slice(0, 6).map(c =>
+        `<i class="fa-solid ${c === 'P' ? 'fa-user' : 'fa-user-slash'} DVSeat ${c === 'P' ? 'DVPlayer' : 'DVNpc'}"></i>`
+      ).join('');
+      const empty = Array(Math.max(0, 6 - v.seats.length)).fill('<span class="DVSeat DVEmpty"></span>').join('');
+      return `<span class="DVName">${v.name}</span>
+        <span class="DVPlate">${v.plate}</span>
+        <span class="DVSeats">${seats}${empty}</span>
+        <span class="DVDist">${v.dist}</span>`;
+    }
+  }
+  return `<span>${s}</span>`;
+}
+
+/* Stable identity key for a raw option string, used to track selection
+   and row position across refreshes even as distance/occupancy fields
+   change. A vehicle's plate is the only field guaranteed unique (model
+   names repeat); a player's name is used for player-select. Anything
+   else falls back to stripping a trailing distance suffix. itemId is
+   required so this routes to the correct parser instead of guessing
+   from the string shape, which is ambiguous between the two formats. */
+function optionIdentityKey(label, itemId) {
+  const s = String(label);
+  if (itemId === 'veh-select') {
+    const v = parseVehicleOption(s);
+    if (v) return v.plate;
+  } else if (itemId === 'player-select') {
+    const p = parsePlayerOption(s);
+    if (p) return p.name;
+  }
+  return s.replace(/\s*[\(\[]?\s*[\d.]+\s*m\)?\]?\s*$/i, '').trim();
+}
+
+/* Keep existing dropdown rows in their current on-screen positions across
+   a live refresh (e.g. periodic player-distance updates) — only their
+   text updates in place. An entry is only actually removed once it's
+   gone from the fresh list entirely (player left / past the distance
+   limit); newly-appeared entries are appended at the end. Row order is
+   only allowed to fully reset the next time the dropdown is opened fresh. */
+function mergeDropdownOptions(oldOpts, newOpts, itemId) {
+  const pool = (newOpts || []).map(label => ({ label, key: optionIdentityKey(label, itemId), used: false }));
+  const merged = [];
+  (oldOpts || []).forEach(oldLabel => {
+    const oldKey = optionIdentityKey(oldLabel, itemId);
+    const match = pool.find(n => !n.used && n.key === oldKey);
+    if (match) { match.used = true; merged.push(match.label); }
+  });
+  pool.forEach(n => { if (!n.used) merged.push(n.label); });
+  return merged;
+}
+
+/* Find the CURRENT index of whichever entry was actually picked, by
+   matching its stable identity key against the item's live options —
+   instead of trusting a raw numeric index that silently points at
+   whoever now occupies that slot after the list reorders (e.g. by
+   distance). Returns null if the picked entry isn't present anymore
+   (rather than falling back to a possibly-wrong stale index). */
+function resolveSelectedIndex(item) {
+  if (!item) return null;
+  const opts = item.options || [];
+  const key = dropdownSelectedKey[item.id];
+  if (key !== undefined) {
+    const idx = opts.findIndex(o => optionIdentityKey(o, item.id) === key);
+    return idx !== -1 ? idx : null;
+  }
+  return dropdownState[item.id] !== undefined ? dropdownState[item.id] : null;
+}
+
+/* ---------------- Bridge to Lua ---------------- */
+function post(payload) {
+  try {
+    if (window.invokeNative) window.invokeNative('sendDuiMessage', JSON.stringify(payload));
+  } catch (_) {}
+  // also emit as postMessage so browser previews can hook in
+  try { window.parent && window.parent.postMessage(payload, '*'); } catch(_) {}
+}
+
+/* ---------------- Render ---------------- */
+function render() {
+  const inner = document.getElementById('tabsInner');
+  [...inner.querySelectorAll('.PTab')].forEach(r => r.remove());
+
+  items.forEach((item, abs) => {
+    const row = document.createElement('div');
+    row.className = 'PTab' + (abs === hovered ? ' active' : '');
+    row.dataset.idx = abs;
+
+    if (item.type === 'divider') {
+      row.className += ' is-divider';
+      row.innerHTML = `<div class="PDivider"><div class="DLine"></div><span>${item.label||''}</span><div class="DLine"></div></div>`;
+      inner.appendChild(row);
+      return;
+    }
+
+    if (item.type === 'empty') {
+      row.className += ' is-empty';
+      row.innerHTML = `<span>${item.label || 'Nothing here'}</span>`;
+      inner.appendChild(row);
+      return;
+    }
+
+    const warn = itemHasWarn(item);
+    if (warn) row.className += ' warn';
+
+    const icon = iconFor(item);
+    const iconHTML = `<i class="PTIcon fa-solid ${icon}"></i>`;
+    const labelHTML = `<div class="PTLabel"><span class="PTLabelText">${item.label||''}</span>${warn?'<i class="fa-solid fa-triangle-exclamation PWarnIcon" title="Risky"></i>':''}</div>`;
+
+    if (item.type === 'submenu') {
+      row.innerHTML = `${iconHTML}${labelHTML}<i class="PTArrow fa-solid fa-angle-right"></i>`;
+    } else if (item.type === 'toggle') {
+      const on = toggles[item.id] !== undefined ? !!toggles[item.id] : !!item.value;
+      row.innerHTML = `${iconHTML}${labelHTML}<div class="TOptions"><div class="Checkbox ${on?'Checked':''}"><div class="Inside"></div></div></div>`;
+    } else if (item.type === 'slider') {
+      const min = item.min ?? 0, max = item.max ?? 100;
+      const v = sliderVals[item.id] !== undefined ? sliderVals[item.id] : (item.value ?? min);
+      const pct = max > min ? ((v - min) / (max - min) * 100) : 0;
+      row.innerHTML = `${iconHTML}${labelHTML}<div class="TOptions"><div class="Slider" data-sid="${item.id}"><div class="Progress" style="width:${pct}%"><div class="Thumb"></div></div></div><span class="SliderVal">${v}</span></div>`;
+    } else if (item.type === 'scrollable') {
+      const opts = item.options||[], idx = scrollVals[item.id]||0;
+      row.innerHTML = `${iconHTML}${labelHTML}<div class="TOptions"><div class="Scrollable"><i class="fa-solid fa-angle-left"></i><span>${opts[idx]||''}</span><i class="fa-solid fa-angle-right"></i></div></div>`;
+    } else if (item.type === 'dropdown') {
+      const opts = item.options||[];
+      const selIdx = resolveSelectedIndex(item);
+      const override = playerDropDisplay[item.id];
+      const label = override !== undefined ? override : (selIdx !== null ? opts[selIdx] : '...');
+      row.innerHTML = `${iconHTML}${labelHTML}<span class="PDropLabel">${label||'...'}</span>`;
+    } else if (item.type === 'action') {
+      if (item.inputs && item.inputs.length) {
+        const raw = item.inputs.map(i => inputStore[i.id]||'').filter(Boolean).join(', ');
+        const preview = raw.length > 14 ? raw.slice(0,14)+'…' : (raw || '...');
+        row.innerHTML = `${iconHTML}${labelHTML}<div class="PInputRight"><span class="PInputVal" title="${raw.replace(/"/g,'&quot;')}">${preview}</span><i class="fa-solid fa-keyboard"></i></div>`;
+      } else {
+        row.innerHTML = `${iconHTML}${labelHTML}`;
+      }
+    } else if (item.type === 'status') {
+      row.className = row.className.replace('PTab', 'PTab is-status');
+      const rawText = item.text || '';
+      const colonIdx = rawText.indexOf(': ');
+      const left  = colonIdx !== -1 ? rawText.slice(0, colonIdx) : (item.label || '');
+      const right = colonIdx !== -1 ? rawText.slice(colonIdx + 2) : rawText;
+      let color = '';
+      if (right === 'Supported' || /online|ok|active/i.test(right)) color = 'color:rgb(var(--success));';
+      else if (right === 'Unsupported' || /offline|fail|error/i.test(right)) color = 'color:rgb(var(--danger));';
+      row.innerHTML = `${iconHTML}<span class="PStatusLabel">${left}</span><span class="PStatusRight" id="sv-${item.id||''}" style="${color}">${right}</span>`;
+    } else if (item.type === 'radiotoggle') {
+      const on = (radioGroups[item.group] === item.id);
+      const dist = item.dist || '';
+      const dn = parseInt(dist);
+      const dc = dn<=20?'near':dn<=100?'mid':'far';
+      row.innerHTML = `${iconHTML}${labelHTML}<div class="TOptions">${dist?`<span class="PDistBadge ${dc}">${dist}</span>`:''}<div class="Checkbox ${on?'Checked':''}"><div class="Inside"></div></div></div>`;
+    } else {
+      row.innerHTML = `${iconHTML}${labelHTML}`;
+    }
+
+    inner.appendChild(row);
+  });
+
+  updatePill();
+  updateBreadcrumb();
+  updateFooter();
+}
+
+function updatePill() {
+  const pill = document.getElementById('pill');
+  const target = document.querySelector(`.PTab[data-idx="${hovered}"]`);
+  if (!pill || !target) return;
+  pill.style.top = target.offsetTop + 'px';
+  pill.style.height = target.offsetHeight + 'px';
+
+  const container = document.getElementById('scrollableContainer');
+  const prevRow = target.previousElementSibling;
+  const isFirstOfSection = prevRow && prevRow.classList.contains('is-divider');
+
+  if (isFirstOfSection) {
+    // Always snap so the section's divider is fully visible above the
+    // first row of that section, rather than only correcting when it
+    // happens to already be out of view.
+    container.scrollTop = prevRow.offsetTop;
+  } else {
+    const cTop = container.scrollTop;
+    const cBottom = cTop + container.clientHeight;
+    const tTop = target.offsetTop;
+    const tBottom = tTop + target.offsetHeight;
+    if (tTop < cTop) container.scrollTop = tTop;
+    else if (tBottom > cBottom) container.scrollTop = tBottom - container.clientHeight;
+  }
+}
+
+function updateBreadcrumb() {
+  const bt = document.getElementById('bTitle');
+  if (!bt) return;
+  const current = breadcrumbStack[breadcrumbStack.length - 1];
+  if (breadcrumbStack.length > 1) {
+    bt.innerHTML = `<i class="fa-solid fa-angle-right"></i><span>${current}</span>`;
+  } else {
+    bt.innerHTML = `<span>Sinful 2.0</span>`;
+  }
+}
+
+function updateFooter() {
+  const el = document.getElementById('ind');
+  if (!el) return;
+  const countable = items.filter(i => i.type !== 'divider' && i.type !== 'status' && i.type !== 'empty');
+  const hovItem = items[hovered];
+  const pos = hovItem && hovItem.type !== 'divider' && hovItem.type !== 'status' && hovItem.type !== 'empty'
+    ? countable.indexOf(hovItem) + 1 : null;
+  el.textContent = pos !== null ? `(${pos}/${countable.length})` : `(-/${countable.length})`;
+}
+
+/* ---------------- Overlays ---------------- */
+let inputOverlayHideHandler = null;
+function showInputOverlay(title, val) {
+  const ov = document.getElementById('inputOverlay');
+  // Cancel any pending close-animation handler left over from a previous
+  // closeInputOverlay() call (e.g. item-name input closing right into the
+  // amount input opening). Without this, that stale handler fires on THIS
+  // overlay's own open animation and immediately hides it again.
+  if (inputOverlayHideHandler) {
+    ov.removeEventListener('animationend', inputOverlayHideHandler);
+    inputOverlayHideHandler = null;
+  }
+  document.getElementById('iwTitle').textContent = title || 'Input';
+  document.getElementById('iwValue').textContent = val || '';
+  ov.style.display = 'flex';
+  ov.style.animation = 'overlayIn .2s cubic-bezier(.16,1,.3,1)';
+}
+function closeInputOverlay() {
+  const ov = document.getElementById('inputOverlay');
+  if (ov.style.display === 'none') return;
+  ov.style.animation = 'overlayOut .16s cubic-bezier(.4,0,1,1) forwards';
+  inputOverlayHideHandler = () => {
+    ov.style.display = 'none';
+    ov.style.animation = '';
+    inputOverlayHideHandler = null;
+  };
+  ov.addEventListener('animationend', inputOverlayHideHandler, { once: true });
+}
+
+function openDropdown(item) {
+  activeDropdown = item;
+  // Resume at the last confirmed pick (if any) instead of always jumping
+  // back to the first row — important because navSync can legitimately
+  // re-open an already-open dropdown (e.g. a periodic Lua state sync),
+  // and resetting to 0 every time would silently discard whatever the
+  // player had already navigated to.
+  const resolvedSel = resolveSelectedIndex(item);
+  dropdownHovered = resolvedSel !== null ? resolvedSel : 0;
+  const ov = document.getElementById('dropOverlay');
+  ov._item = item;
+
+  const build = () => {
+    const opts = item.options || [];
+    ov.innerHTML = `
+      <div class="DropCard">
+        <div class="IWHeader">
+          <img src="${document.getElementById('fLogo').src}" />
+          <div class="IWLine"></div>
+          <i class="fa-solid fa-list-ul"></i>
+          <span>${item.label || 'Select'}</span>
+        </div>
+        <div class="DropList" id="dropListInner">
+          <div class="DropPill" id="dropPill"></div>
+          ${opts.map((o,i) => `<div class="DropRow" data-i="${i}"><i class="fa-solid fa-check DRCheck"></i>${formatDropRowInner(item.id, o)}</div>`).join('')}
+          ${opts.length === 0 ? `<div class="SpecEmpty">No options</div>` : ''}
+        </div>
+      </div>`;
+    // Mouse only clicks to select (see the delegated click listener below).
+    // It deliberately does NOT track hover/mouseenter here: Lua owns
+    // dropdownHovered via navDropUp/navDropDown/navDropSelect, and a
+    // mouseenter binding would let the list's own auto-scroll-into-view
+    // drag a stray row under a motionless real cursor and silently
+    // overwrite whatever the player just navigated to with keyboard
+    // or controller input — which is exactly the desync bug this avoids.
+    highlightDropRow(dropdownHovered, true);
+  };
+  ov._rebuild = build;
+  ov.style.display = 'flex';
+  ov.style.animation = 'overlayIn .2s cubic-bezier(.16,1,.3,1)';
+  build();
+}
+
+/* Incrementally patch the row list to match item.options, reusing
+   existing DOM nodes wherever possible instead of a full innerHTML
+   teardown-and-rebuild. This matters a lot in a busy area: distances
+   change on basically every refresh tick, so a full rebuild fires
+   constantly, and each one flashes/reflows the whole list and can
+   visually disrupt where you're navigating. Patching in place means a
+   refresh only ever updates row *text*, never tears out the row you're
+   currently on. */
+function patchDropRows(ov) {
+  const item = ov._item;
+  const list = ov.querySelector('#dropListInner');
+  if (!item || !list) return;
+  const opts = item.options || [];
+  const rows = Array.from(list.querySelectorAll('.DropRow'));
+
+  opts.forEach((o, i) => {
+    let row = rows[i];
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'DropRow';
+      list.appendChild(row);
+    }
+    row.dataset.i = i;
+    const inner = `<i class="fa-solid fa-check DRCheck"></i>${formatDropRowInner(item.id, o)}`;
+    if (row.innerHTML !== inner) row.innerHTML = inner;
+  });
+  // Drop any rows left over from a longer previous list.
+  for (let i = opts.length; i < rows.length; i++) rows[i].remove();
+
+  const emptyMsg = list.querySelector('.SpecEmpty');
+  if (opts.length === 0 && !emptyMsg) {
+    list.insertAdjacentHTML('beforeend', `<div class="SpecEmpty">No options</div>`);
+  } else if (opts.length > 0 && emptyMsg) {
+    emptyMsg.remove();
+  }
+}
+
+/* Moves the sliding highlight pill to a row without touching the rest of
+   the DOM, so the top/height CSS transition actually gets to play instead
+   of the pill being torn down and recreated on every nav step. */
+function highlightDropRow(idx, instant) {
+  const ov = document.getElementById('dropOverlay');
+  const pill = ov.querySelector('#dropPill');
+  const rows = ov.querySelectorAll('.DropRow');
+  if (!rows.length) { if (pill) pill.style.opacity = '0'; return; }
+  dropdownHovered = idx;
+  const selIdx = activeDropdown ? resolveSelectedIndex(activeDropdown) : null;
+  const active = ov.querySelector(`.DropRow[data-i="${idx}"]`);
+  rows.forEach(r => {
+    const i = parseInt(r.dataset.i, 10);
+    r.classList.toggle('hover', r === active);
+    r.classList.toggle('is-selected', i === selIdx);
+  });
+  if (pill && active) {
+    if (instant) pill.style.transition = 'none';
+    pill.style.opacity = '1';
+    pill.style.top = active.offsetTop + 'px';
+    pill.style.height = active.offsetHeight + 'px';
+    if (instant) {
+      void pill.offsetHeight; // force reflow so the transition-none actually applies before...
+      pill.style.transition = '';  // ...restoring it for the next (animated) move
+    }
+    active.scrollIntoView({ block: 'nearest' });
+  } else if (pill) {
+    pill.style.opacity = '0';
+  }
+}
+function closeDropdown() {
+  activeDropdown = null;
+  const ov = document.getElementById('dropOverlay');
+  if (ov.style.display === 'none') { ov._item = null; return; }
+  ov.style.animation = 'overlayOut .16s cubic-bezier(.4,0,1,1) forwards';
+  ov.addEventListener('animationend', () => {
+    ov.style.display = 'none';
+    ov.style.animation = '';
+    ov.innerHTML = '';
+  }, { once: true });
+  ov._item = null;
+}
+function selectDropOption(item, idx) {
+  dropdownState[item.id] = idx;
+  const disp = (item.options || [])[idx];
+  if (disp !== undefined) {
+    playerDropDisplay[item.id] = disp;
+    dropdownSelectedKey[item.id] = optionIdentityKey(disp, item.id);
+  }
+  if (item.id === 'theme-select' && disp) applyTheme(disp);
+
+  const ov = document.getElementById('dropOverlay');
+  const row = ov.querySelector(`.DropRow[data-i="${idx}"]`);
+  const finish = () => { closeDropdown(); render(); };
+  if (row) {
+    row.classList.add('confirming');
+    row.addEventListener('animationend', finish, { once: true });
+  } else {
+    finish();
+  }
+}
+
+/* ---------------- Theme / logo swap ---------------- */
+function applyTheme(name) {
+  const src = LOGOS[name] || LOGOS['Default'];
+  document.querySelectorAll('.FLogo, .IWHeader img').forEach(img => img.src = src);
+  const menu = document.getElementById('menu');
+
+  const colors = THEMES[name] || THEMES['Default'] || { accent:'252,60,73', borderAlpha:0.28, mode:'dark' };
+  if (colors.rainbow) menu.classList.add('rainbow-active');
+  else menu.classList.remove('rainbow-active');
+
+  document.documentElement.style.setProperty('--accent', colors.accent);
+  document.documentElement.style.setProperty('--border-alpha', colors.borderAlpha);
+  if (colors.banner) setBanner(colors.banner);
+
+  const mv = MODE_VARS[colors.mode === 'light' ? 'light' : 'dark'];
+  document.documentElement.style.setProperty('--tint', mv.tint);
+  document.documentElement.style.setProperty('--bg-0', mv.bg0);
+  document.documentElement.style.setProperty('--bg-1', mv.bg1);
+  document.documentElement.style.setProperty('--bg-2', mv.bg2);
+  document.documentElement.style.setProperty('--well', mv.well);
+}
+
+function setBanner(url) {
+  const img = document.getElementById('bImg');
+  const ph  = document.getElementById('bPH');
+  if (!url) { img.style.display='none'; ph.style.display='flex'; return; }
+  ph.style.display='none'; img.style.display='block'; img.src = url;
+}
+
+function setStatus(id, text, style) {
+  const el = document.getElementById('sv-' + id);
+  if (el) { el.textContent = text; if (style) el.className = 'PStatusRight ' + style; }
+  const it = items.find(i => i.id === id);
+  if (it) it.text = (it.text && it.text.includes(': ')) ? it.text.split(': ')[0] + ': ' + text : text;
+}
+
+/* ---------------- Menu show/hide anim ---------------- */
+function popInMenu() {
+  const menu = document.getElementById('menu');
+  menu.style.display = 'flex';
+  menu.style.animation = 'menuPopIn .22s cubic-bezier(.16,1,.3,1)';
+}
+
+/* ---------------- Notifications ---------------- */
+function showNotif(msg, type='info', title=null, dur=3200) {
+  const wrap = document.getElementById('nwrap');
+  const el = document.createElement('div');
+  el.className = `Notif ${type} enter`;
+  const icons = { info:'fa-circle-info', success:'fa-circle-check', warning:'fa-triangle-exclamation', error:'fa-circle-xmark' };
+  const titles = { info:'Info', success:'Success', warning:'Warning', error:'Error' };
+  el.innerHTML = `
+    <div class="NHead"><i class="fa-solid ${icons[type]||icons.info}"></i><span>${title||titles[type]||'Info'}</span></div>
+    <div class="NMsg">${msg||''}</div>
+    <div class="NProgress" style="width:100%"></div>`;
+  wrap.appendChild(el);
+  const prog = el.querySelector('.NProgress');
+  if (prog) {
+    prog.style.transitionDuration = dur + 'ms';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ prog.style.width='0%'; }));
+  }
+  setTimeout(()=>{ el.classList.remove('enter'); el.classList.add('exit'); setTimeout(()=>el.remove(), 220); }, dur);
+}
+
+/* ---------------- Message handler (from Lua) ---------------- */
+window.addEventListener('message', event => {
+  let d = event.data;
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch(_) { return; }
+  }
+  if (!d) return;
+  if (!d.action && d.data && d.data.action) d = d.data;
+  if (!d.action) return;
+
+  switch (d.action) {
+    case 'show': {
+      if (d.items) items = normalizeWarnItems(d.items);
+      hovered = (typeof d.index === 'number') ? d.index : (hovered || 0);
+      // Make the menu visible before measuring layout, so the hover
+      // pill lands on the right button immediately (incl. first open).
+      document.getElementById('menu').style.display = 'flex';
+      render();
+      popInMenu();
+      break;
+    }
+    case 'hide': {
+      const menu = document.getElementById('menu');
+      if (menu.style.display === 'none') break;
+      menu.style.animation = 'menuPopOut .2s cubic-bezier(.4,0,1,1) forwards';
+      menu.addEventListener('animationend', () => {
+        menu.style.display = 'none';
+        menu.style.animation = '';
+      }, { once: true });
+      break;
+    }
+    case 'navSync':
+      if (d.items) items = normalizeWarnItems(d.items);
+      if (typeof d.index === 'number') hovered = d.index;
+      if (items[hovered] && items[hovered].type === 'dropdown' && d.open) openDropdown(items[hovered]);
+      render();
+      break;
+
+    case 'navBack':
+      if (d.items) items = normalizeWarnItems(d.items);
+      hovered = d.index || 0;
+      if (breadcrumbStack.length > 1) breadcrumbStack.pop();
+      if (activeDropdown) closeDropdown();
+      render();
+      break;
+
+    case 'navToggle': {
+      const it = items[d.index];
+      if (it && it.type === 'toggle') {
+        const current = it.id in toggles ? toggles[it.id] : !!it.value;
+        const next = !current;
+        toggles[it.id] = next;
+        // Flip the existing element's class instead of a full render() —
+        // a full re-render replaces the row wholesale already in its
+        // final state, which skips the CSS transition entirely.
+        const box = document.querySelector(`.PTab[data-idx="${d.index}"] .Checkbox`);
+        if (box) box.classList.toggle('Checked', next);
+        else render();
+      }
+      break;
+    }
+
+    case 'navLeft':
+    case 'navRight':
+      break;
+
+    case 'navSlider': {
+      if (d.id === undefined || d.value === undefined) break;
+      sliderVals[d.id] = d.value;
+      const sl = document.querySelector(`.Slider[data-sid="${d.id}"]`);
+      if (sl) {
+        const it = items.find(i => i.id === d.id) || {};
+        const min = it.min ?? 0, max = it.max ?? 100;
+        const pct = max > min ? ((d.value - min) / (max - min) * 100) : 0;
+        sl.querySelector('.Progress').style.width = pct + '%';
+        const span = sl.closest('.TOptions')?.querySelector('.SliderVal');
+        if (span) span.textContent = d.value;
+      }
+      const menu = document.getElementById('menu');
+      if (d.id === 'pos-x') menu.style.left = d.value + 'vw';
+      if (d.id === 'pos-y') menu.style.top  = d.value + '%';
+
+      const specPanel = document.getElementById('specPanel');
+      if (d.id === 'spec-pos-x') specPanel.style.right  = d.value + 'vw';
+      if (d.id === 'spec-pos-y') specPanel.style.bottom = d.value + '%';
+      
+      const adminPanel = document.getElementById('adminPanel');
+      if (d.id === 'admin-pos-x') adminPanel.style.right = d.value + 'vw';
+      if (d.id === 'admin-pos-y') adminPanel.style.top   = d.value + '%';
+      
+      const bubblePanel = document.getElementById('bubblePanel');
+      if (d.id === 'bubble-pos-x') bubblePanel.style.left  = d.value + 'vw';
+      if (d.id === 'bubble-pos-y') bubblePanel.style.bottom = d.value + '%';
+      break;
+    }
+
+    case 'updateKeyboard':
+      if (d.visible === false) {
+        if (d.id) inputStore[d.id] = d.value || '';
+        closeInputOverlay();
+        render();
+      } else if (d.visible === 'cancel') {
+        closeInputOverlay();
+      } else {
+        if (d.id) inputStore[d.id] = d.value || '';
+        showInputOverlay(d.title, d.value || '');
+      }
+      break;
+
+    case 'navDropOpen': {
+      const it = d.item || items[hovered];
+      if (it && it.type === 'dropdown') openDropdown(it);
+      break;
+    }
+    case 'navDropUp': {
+      if (activeDropdown) {
+        const n = (activeDropdown.options || []).length;
+        if (n) highlightDropRow((dropdownHovered - 1 + n) % n);
+      }
+      break;
+    }
+    case 'navDropDown': {
+      if (activeDropdown) {
+        const n = (activeDropdown.options || []).length;
+        if (n) highlightDropRow((dropdownHovered + 1) % n);
+      }
+      break;
+    }
+    case 'navDropSelect':
+      if (activeDropdown) selectDropOption(activeDropdown, dropdownHovered);
+      break;
+    case 'navDropSelectId':
+      if (d.id && d.display !== undefined) {
+        dropdownState[d.id] = d.idx;
+        playerDropDisplay[d.id] = d.display;
+        dropdownSelectedKey[d.id] = optionIdentityKey(d.display, d.id);
+        if (d.id === 'theme-select') applyTheme(d.display);
+      }
+      closeDropdown();
+      render();
+      break;
+    case 'navDropClose':
+      closeDropdown();
+      break;
+    case 'navDropRebuild': {
+      const ov = document.getElementById('dropOverlay');
+      if (ov._item && d.items) {
+        const fresh = d.items.find(i => i.id === ov._item.id);
+        if (fresh) {
+          const oldOpts = ov._item.options || [];
+          // Remember which logical entry is currently hovered so the
+          // highlight can follow it even if rows above it were removed.
+          const hoveredKey = oldOpts[dropdownHovered] !== undefined
+            ? optionIdentityKey(oldOpts[dropdownHovered], ov._item.id) : null;
+          ov._item.options = mergeDropdownOptions(oldOpts, fresh.options || [], ov._item.id);
+          if (hoveredKey !== null) {
+            const newIdx = ov._item.options.findIndex(l => optionIdentityKey(l, ov._item.id) === hoveredKey);
+            // If they left / went out of range, default to the top of
+            // the list rather than clamping to their old numeric slot
+            // (which would just land on whoever else is sitting there now).
+            dropdownHovered = newIdx !== -1 ? newIdx : 0;
+          }
+          patchDropRows(ov);
+          highlightDropRow(dropdownHovered, true);
+        }
+      }
+      break;
+    }
+
+    case 'notification':
+      showNotif(d.message, d.type || 'info', d.title || null, d.duration || 3200);
+      break;
+
+    case 'setStatus':
+      setStatus(d.id, d.text, d.style);
+      break;
+
+    case 'setToggle':
+      toggles[d.id] = !!d.value;
+      render();
+      break;
+
+    case 'setBanner':
+      setBanner(d.url || '');
+      break;
+
+    case 'setTitle':
+      if (d.text) document.getElementById('bTitle').textContent = d.text;
+      break;
+
+    case 'setFooter':
+      if (d.text && d.text !== 'Admin Build v1.0') {
+        setFooterText(d.text);
+        footerRotationHoldUntil = Date.now() + FOOTER_ROTATE_MS; // don't stomp Lua's text on the next tick
+      }
+      break;
+
+    case 'breadcrumbPush':
+      if (d.label) breadcrumbStack.push(d.label);
+      updateBreadcrumb();
+      break;
+
+    case 'breadcrumbReset':
+      breadcrumbStack = ['Select Category'];
+      updateBreadcrumb();
+      break;
+
+    case 'spectators': {
+      const panel = document.getElementById('specPanel');
+      const list  = document.getElementById('specList');
+      const count = document.getElementById('specCount');
+      if (d.visible === false) {
+        if (panel.style.display === 'none') break;
+        panel.style.animation = 'specOut .14s cubic-bezier(.4,0,1,1) forwards';
+        panel.addEventListener('animationend', () => {
+          panel.style.display = 'none'; panel.style.animation = '';
+        }, { once: true });
+        break;
+      }
+      const names = Array.isArray(d.list) ? d.list : [];
+      count.textContent = names.length;
+      list.innerHTML = names.length === 0
+        ? `<div class="SpecEmpty">No spectators</div>`
+        : names.map(n => `<div class="SpecRow" title="${String(n).replace(/"/g,'&quot;')}">${String(n)}</div>`).join('');
+      panel.style.display = 'block';
+      panel.style.animation = 'specIn .24s cubic-bezier(.16,1,.3,1) forwards';
+      break;
+    }
+    
+    case 'bubbles': {
+      const panel = document.getElementById('bubblePanel');
+      const list  = document.getElementById('bubbleList');
+      const count = document.getElementById('bubbleCount');
+      if (!panel || !list || !count) break;
+
+      if (d.visible === false) {
+        if (panel.style.display === 'none') break;
+        panel.style.animation = 'specOut .14s cubic-bezier(.4,0,1,1) forwards';
+        panel.addEventListener('animationend', () => {
+          panel.style.display = 'none'; panel.style.animation = '';
+        }, { once: true });
+        break;
+      }
+
+      const names = Array.isArray(d.list) ? d.list : [];
+      count.textContent = names.length;
+      list.innerHTML = names.length === 0
+        ? `<div class="BubbleEmpty">No bubble users</div>`
+        : names.map(n => `<div class="BubbleRow" title="${String(n).replace(/"/g,'&quot;')}">${String(n)}</div>`).join('');
+
+      if (panel.style.display === 'block') break;
+      panel.style.display = 'block';
+      panel.style.animation = 'specIn .24s cubic-bezier(.16,1,.3,1) forwards';
+      break;
+    }
+    
+    case 'admins': {
+      const panel = document.getElementById('adminPanel');
+      const list  = document.getElementById('adminList');
+      const count = document.getElementById('adminCount');
+      if (!panel || !list || !count) break;
+
+      if (d.visible === false) {
+        if (panel.style.display === 'none') break;
+        panel.style.animation = 'specOut .14s cubic-bezier(.4,0,1,1) forwards';
+        panel.addEventListener('animationend', () => {
+          panel.style.display = 'none'; panel.style.animation = '';
+        }, { once: true });
+        break;
+      }
+
+      const names = Array.isArray(d.list) ? d.list : [];
+      count.textContent = names.length;
+      list.innerHTML = names.length === 0
+        ? `<div class="AdminEmpty">Not Available</div>`
+        : names.map(n => `<div class="AdminRow" title="${String(n).replace(/"/g,'&quot;')}">${String(n)}</div>`).join('');
+
+      if (panel.style.display === 'block') break;
+      panel.style.display = 'block';
+      panel.style.animation = 'specIn .24s cubic-bezier(.16,1,.3,1) forwards';
+      break;
+    }
+  }
+});
+
+
+/* ---------------- Dropdown row hover click (mouse mode) ---------------- */
+document.getElementById('dropOverlay').addEventListener('click', e => {
+  const row = e.target.closest('.DropRow');
+  if (!row || !activeDropdown) return;
+  const idx = parseInt(row.dataset.i, 10);
+  selectDropOption(activeDropdown, idx);
+});
+
+/* ---------------- Ready signal ---------------- */
+window._loaderDone = true;
+post({ action: 'uiReady' });
+
+/* Open immediately on load, with the normal pop-in animation,
+   instead of sitting hidden until a 'show' message arrives.
+   Menu is made visible before render() so the hover pill measures
+   real layout right away (same fix as the 'show' handler). */
+applyTheme('Default');
+document.getElementById('menu').style.display = 'flex';
+render();
+popInMenu();
+
+/* ---------------- Footer text rotation ---------------- */
+const FOOTER_ROTATE_MS = 30000;
+const FOOTER_FADE_MS = 350;
+const FOOTER_MESSAGES = [
+  'discord.gg/sinfully',
+  'satanicservices.com',
+];
+let footerRotationIdx = 0;
+let footerRotationHoldUntil = 0; // set by 'setFooter' so Lua-driven text isn't stomped mid-hold
+
+function setFooterText(text) {
+  const el = document.getElementById('footerText');
+  if (!el) return;
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.textContent = text;
+    el.style.opacity = '1';
+  }, FOOTER_FADE_MS);
+}
+
+setInterval(() => {
+  if (Date.now() < footerRotationHoldUntil) return;
+  footerRotationIdx = (footerRotationIdx + 1) % FOOTER_MESSAGES.length;
+  setFooterText(FOOTER_MESSAGES[footerRotationIdx]);
+}, FOOTER_ROTATE_MS);
+
+/* ---------------- Standalone / Web Browser & Preview Controls ---------------- */
+document.getElementById('tabsInner').addEventListener('click', e => {
+  const row = e.target.closest('.PTab');
+  if (!row) return;
+  const idx = parseInt(row.dataset.idx, 10);
+  if (isNaN(idx)) return;
+  hovered = idx;
+  const it = items[idx];
+  if (!it) return;
+
+  if (it.type === 'toggle') {
+    toggles[it.id] = !toggles[it.id];
+  } else if (it.type === 'dropdown') {
+    openDropdown(it);
+    return;
+  } else if (it.type === 'submenu') {
+    breadcrumbStack.push(it.label || 'Submenu');
+    updateBreadcrumb();
+    showNotif(`Submenu: ${it.label}`, 'info');
+  } else if (it.type === 'action') {
+    if (it.inputs && it.inputs.length) {
+      showInputOverlay(it.label, inputStore[it.inputs[0].id] || '');
+      return;
+    }
+    showNotif(`Action: ${it.label}`, 'success');
+  } else if (it.type === 'radiotoggle') {
+    radioGroups[it.group] = it.id;
+  }
+  render();
+});
+
+window.addEventListener('keydown', e => {
+  // Input overlay keys
+  const inputOv = document.getElementById('inputOverlay');
+  if (inputOv && inputOv.style.display !== 'none') {
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+      closeInputOverlay();
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      closeInputOverlay();
+      showNotif('Saved input', 'success');
+      e.preventDefault();
+    }
+    return;
+  }
+
+  // Dropdown overlay keys
+  if (activeDropdown) {
+    const n = (activeDropdown.options || []).length;
+    if (e.key === 'ArrowUp') {
+      if (n) highlightDropRow((dropdownHovered - 1 + n) % n);
+      e.preventDefault();
+    } else if (e.key === 'ArrowDown') {
+      if (n) highlightDropRow((dropdownHovered + 1) % n);
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      selectDropOption(activeDropdown, dropdownHovered);
+      e.preventDefault();
+    } else if (e.key === 'Backspace' || e.key === 'Escape') {
+      closeDropdown();
+      e.preventDefault();
+    }
+    return;
+  }
+
+  if (e.key === 'F9' || e.key === 'Insert') {
+    const menu = document.getElementById('menu');
+    if (menu.style.display === 'none') {
+      menu.style.display = 'flex';
+      popInMenu();
+    } else {
+      menu.style.animation = 'menuPopOut .2s cubic-bezier(.4,0,1,1) forwards';
+      menu.addEventListener('animationend', () => {
+        menu.style.display = 'none';
+        menu.style.animation = '';
+      }, { once: true });
+    }
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key === 'ArrowUp') {
+    let next = hovered - 1;
+    if (next < 0) next = items.length - 1;
+    let guard = 0;
+    while (items[next] && (items[next].type === 'divider' || items[next].type === 'status' || items[next].type === 'empty') && guard < items.length) {
+      next--;
+      if (next < 0) next = items.length - 1;
+      guard++;
+    }
+    hovered = next;
+    render();
+    e.preventDefault();
+  } else if (e.key === 'ArrowDown') {
+    let next = hovered + 1;
+    if (next >= items.length) next = 0;
+    let guard = 0;
+    while (items[next] && (items[next].type === 'divider' || items[next].type === 'status' || items[next].type === 'empty') && guard < items.length) {
+      next++;
+      if (next >= items.length) next = 0;
+      guard++;
+    }
+    hovered = next;
+    render();
+    e.preventDefault();
+  } else if (e.key === 'Enter') {
+    const it = items[hovered];
+    if (it) {
+      if (it.type === 'toggle') {
+        toggles[it.id] = !toggles[it.id];
+        render();
+      } else if (it.type === 'dropdown') {
+        openDropdown(it);
+      } else if (it.type === 'submenu') {
+        breadcrumbStack.push(it.label || 'Submenu');
+        updateBreadcrumb();
+        showNotif(`Submenu: ${it.label}`, 'info');
+      } else if (it.type === 'action') {
+        if (it.inputs && it.inputs.length) {
+          showInputOverlay(it.label, inputStore[it.inputs[0].id] || '');
+          return;
+        }
+        showNotif(`Action: ${it.label}`, 'success');
+      }
+    }
+    e.preventDefault();
+  } else if (e.key === 'Backspace') {
+    if (breadcrumbStack.length > 1) {
+      breadcrumbStack.pop();
+      updateBreadcrumb();
+    }
+    e.preventDefault();
+  }
+});
+
+</script>
+
+</body></html>
